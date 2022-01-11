@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../vkUpload/.idea/vkUpload.iml" filepath="$PROJECT_DIR$/../vkUpload/.idea/vkUpload.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../vkUploaderEX/.idea/vkUploaderEX.iml" filepath="$PROJECT_DIR$/../vkUploaderEX/.idea/vkUploaderEX.iml" />
+    </modules>
+  </component>
+</project>
