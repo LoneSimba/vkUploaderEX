@@ -1,6 +1,9 @@
 ## Custom
 .config/gdrive_secrets.json
 .config/gdrive_creds.json
+.config/vk_config.v2.json
+.config/vk_token.json
+.config/settings.json
 
 .temp/**/
 .temp/**
