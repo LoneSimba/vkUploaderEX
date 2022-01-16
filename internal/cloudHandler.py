@@ -45,15 +45,15 @@ class CloudHandler(type):
 
 class GDriveCols(IntEnum):
     ID: int = 0
-    SCHOOL: int = 2
-    GROUP: int = 3
-    STUDENT: int = 5
-    AGE: int = 6
-    TUTOR: int = 9
-    TITLE: int = 12
-    MATERIALS: int = 13
-    LINK: int = 15
-    COMM: int = 16
+    SCHOOL: int = 3
+    GROUP: int = 4
+    STUDENT: int = 6
+    AGE: int = 7
+    TUTOR: int = 10
+    TITLE: int = 13
+    MATERIALS: int = 14
+    LINK: int = 16
+    COMM: int = 17
 
 
 class GDriveColors(Enum):
@@ -109,7 +109,7 @@ class GDriveHandler(metaclass=CloudHandler):
     def download(self, url: str, dest: str):
         items = []
         if "file/d/" in url:
-            fid = re.findall(r'd/(\w+)', url)[0]
+            fid = re.findall(r'd/([\w\W]+)/', url)[0]
             file_obj = self.client.CreateFile({'id': fid})
             file_obj.FetchMetadata(fetch_all=True)
             items = [file_obj]
@@ -122,7 +122,7 @@ class GDriveHandler(metaclass=CloudHandler):
 
         path = '%s/%s' % ('.temp', dest)
         makedirs(path, exist_ok=True)
-        print(items)
+
         item: GoogleDriveFile
         for item in items:
             try:
@@ -143,7 +143,7 @@ class GDriveHandler(metaclass=CloudHandler):
     def get_sources_list(self) -> list:
         sheets = self.client.ListFile({
             'q': "'root' in parents and trashed=false and mimeType='application/vnd.google-apps.spreadsheet'",
-            'includeItemsFromAllDrives': True
+            'includeItemsFromAllDrives': 'true'
         }).GetList()
 
         files: list = list()
@@ -312,6 +312,7 @@ class YaDiskHandler(metaclass=CloudHandler):
             data: yadisk.objects.PublicResourceObject
             try:
                 data = disk.get_public_meta(url)
+                print(data)
             except:
                 return False
 
@@ -326,7 +327,7 @@ class YaDiskHandler(metaclass=CloudHandler):
         item: yadisk.objects.PublicResourceObject
         for item in items:
             if item.type == "dir":
-                items += item.embedded.items
+                items.extend(item.embedded.items)
                 continue
 
             filename = re.sub(r'[\"?><:\\/|*]', '', item.name)

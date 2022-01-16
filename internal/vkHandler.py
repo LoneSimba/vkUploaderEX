@@ -116,6 +116,7 @@ class VKHandler:
 
         path = os.path.join(self._download_path, str(data.get('id')))
         group = self._settings.get_value('group')
+
         fs = FileSystem(path)
         files = fs.list_files()
         total = len(files)
@@ -127,6 +128,7 @@ class VKHandler:
             if fs.get_mime(filename) is None:
                 filename = fs.fix_ext(filename)
                 if filename is None:
+                    print(f'{filename} не удалось обнаружить тип файла')
                     skipped += 1
                     continue
 
@@ -149,6 +151,7 @@ class VKHandler:
                     os.remove(os.path.join(path, filename))
 
             elif fs.is_pdf(filename):
+                print('pdf')
                 orig = filename
                 tmp_fs = fs.convert_pdf_to_jpg(filename)
                 if tmp_fs is not None:
@@ -223,5 +226,27 @@ class VKHandler:
                 os.remove(os.path.join(path, filename))
 
         fs.remove()
+
+        return total, uploaded, failed, skipped
+
+    def upload_from_link(self, data: dict, desc: str) -> tuple[int, int, int, int]:
+        for key, val in data.items():
+            print(key)
+            desc = desc.replace('$%s$' % key, str(val))
+
+        total = uploaded = skipped = failed = 0
+        group = self._settings.get_value('group')
+
+        links = data.get('link').split(' ')
+        total = len(links)
+        for link in links:
+            try:
+                if self._uploader.video(link=link, album_id=self.video_album_id,
+                                        description=desc, group_id=group, name=data.get('title')):
+                    uploaded += 1
+                else:
+                    failed += 1
+            except:
+                failed += 1
 
         return total, uploaded, failed, skipped

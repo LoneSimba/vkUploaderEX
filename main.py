@@ -34,6 +34,7 @@ _settings: Settings = Settings()
 _vk_handler: VKHandler = VKHandler()
 
 mimetypes.add_type('image/heif', 'heic')
+mimetypes.add_type('image/heif', 'HEIC')
 
 res_total = res_uploaded = res_failed = res_skipped = 0
 
@@ -104,31 +105,62 @@ def process(sender, app_data):
 
         for item in current_source_handler.get_rows(start=get_value('grange_start'), end=get_value('grange_end')):
             add_progress_table_row(item.get('id'), item.get('title'))
-            print(item)
 
             download_handler: CloudHandler = None
-
             if 'drive.google.com' in item.get('link'):
                 download_handler = download_handlers.get('gdrive')()
             elif 'cloud.mail.ru' in item.get('link'):
                 download_handler = download_handlers.get('mailru')()
             elif 'disk.yandex' in item.get('link') or 'yadi.sk' in item.get('link'):
                 download_handler = download_handlers.get('yadisk')()
+            elif 'youtube.com' in item.get('link') or 'youtu.be' in item.get('link'):
+                total, uploaded, failed, skipped = _vk_handler\
+                    .upload_from_link(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$')
+
+                res_total += total
+                res_uploaded += uploaded
+                res_failed += failed
+                res_skipped += skipped
+
+                if uploaded == 0:
+                    if failed == 0 and skipped > 0:
+                        current_source_handler.mark_as(GDriveItemStates.SKIPPED)
+                        update_progress(item.get('id'), 2, 'Работа пропущена: неподдериваемый формат')
+                    else:
+                        current_source_handler.mark_as(GDriveItemStates.FAILED)
+                        update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
+                else:
+                    if uploaded < total:
+                        current_source_handler.mark_as(GDriveItemStates.PARTIAL)
+                        update_progress(item.get('id'), 2,
+                                        'Частично загружено (возможно, неподдерживаемые файлы или ошибка при загрузке)')
+                    else:
+                        current_source_handler.mark_as(GDriveItemStates.FINISHED)
+                        update_progress(item.get('id'), 2, 'Работа загружена')
+
+                continue
             else:
                 update_progress(item.get('id'), 2, 'Ошибка: неподдерживаемый источник')
+                continue
 
+            # try:
             if not download_handler.download(item.get('link'), str(item.get('id'))):
                 current_source_handler.mark_as(GDriveItemStates.FAILED)
                 update_progress(item.get('id'), 2, 'Ошибка при скачивании')
                 continue
+            # except:
+            #     current_source_handler.mark_as(GDriveItemStates.FAILED)
+            #     update_progress(item.get('id'), 2, 'Ошибка при скачивании')
+            #     continue
 
             update_progress(item.get('id'), 1)
-            total, uploaded, failed, skipped = _vk_handler.upload(item,
-                                                                  '"$title$". $materials$\n\
-                                                                   Автор(ы) - $student$, $age$ лет.\n\
-                                                                   Педагог(и) - $tutor$.\n\
-                                                                   $school$, $group$\n\n\
-                                                                   file: $file$')
+            # try:
+            total, uploaded, failed, skipped = _vk_handler.upload(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
+            # except:
+            #     current_source_handler.mark_as(GDriveItemStates.FAILED)
+            #     update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
+            #     continue
+
             res_total += total
             res_uploaded += uploaded
             res_failed += failed
@@ -159,9 +191,11 @@ def save_settings(sender, app_data):
     login = get_value('vk_login')
     group_lnk = get_value('vk_group')
 
-    group_id = int(re.match(r'[club|event](\d+)', group_lnk).group(1))
+    group_id = int(re.findall(r'[club|event](\d+)', group_lnk)[0])
 
     _settings.update(login, group_id)
+    _settings.save()
+    update_vk_album_combos()
     delete_settings_window()
 
 
@@ -404,7 +438,7 @@ with window(tag='main'):
             add_table_column(label='Результат')
 
 
-create_viewport(title='vkUploaderEX', width=800, height=600)
+create_viewport(title='vkUploaderEX', width=800, height=800)
 setup_dearpygui()
 show_viewport()
 set_primary_window('main', True)

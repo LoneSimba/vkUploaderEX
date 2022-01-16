@@ -44,6 +44,7 @@ class FileSystem:
 
         try:
             (mime, _) = mimetypes.guess_extension(file)
+            print(mime)
             new_dir = os.path.join(self._path, filename.replace(mime, ''))
             os.makedirs(new_dir)
 
@@ -128,7 +129,7 @@ class FileSystem:
     def is_heic(self, filename: str):
         file = os.path.join(self._path, filename)
         (mime, _) = mimetypes.guess_type(file)
-        return 'heif' in mime
+        return 'heif' in mime or 'heic' in mime
 
     def is_pdf(self, filename: str):
         file = os.path.join(self._path, filename)
