@@ -43,9 +43,10 @@ class FileSystem:
         file = os.path.join(self._path, filename)
 
         try:
-            (mime, _) = mimetypes.guess_extension(file)
-            print(mime)
-            new_dir = os.path.join(self._path, filename.replace(mime, ''))
+            (mime, _) = mimetypes.guess_type(file)
+            ext = mimetypes.guess_extension(mime)
+
+            new_dir = os.path.join(self._path, filename.replace(ext, ''))
             os.makedirs(new_dir)
 
             powerpoint = client.Dispatch('PowerPoint.Application')
@@ -56,7 +57,13 @@ class FileSystem:
                 slide.Export(os.path.join(new_dir, '%i.jpg' % i), 'JPG')
                 i += 1
 
+            doc.Close()
+            doc = None
+            print('doc close')
             powerpoint.Quit()
+            print('ppt quit')
+            del powerpoint
+            print('ppt del')
             return FileSystem(new_dir)
         except:
             return None

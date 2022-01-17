@@ -108,33 +108,54 @@ class GDriveHandler(metaclass=CloudHandler):
 
     def download(self, url: str, dest: str):
         items = []
-        if "file/d/" in url:
+        if "file/d/" in url or 'presentation/d/' in url:
             fid = re.findall(r'd/([\w\W]+)/', url)[0]
+            print(fid)
             file_obj = self.client.CreateFile({'id': fid})
             file_obj.FetchMetadata(fetch_all=True)
             items = [file_obj]
         elif "folders/" in url:
-            fid = re.findall(r'folders/(\w+)', url)[0]
+            fid = re.findall(r'folders/([\w\W][^?]+)', url)[0]
             items = self.client.ListFile({'q': "'%s' in parents" % fid}).GetList()
         elif 'folderview' in url:
-            fid = re.findall(r'id=(\w+)', url)[0]
+            fid = re.findall(r'id=([\w\W]+)', url)[0]
             items = self.client.ListFile({'q': "'%s' in parents" % fid}).GetList()
 
-        path = '%s/%s' % ('.temp', dest)
-        makedirs(path, exist_ok=True)
+        dpath = '%s/%s' % ('.temp', dest)
+        makedirs(dpath, exist_ok=True)
 
         item: GoogleDriveFile
         for item in items:
             try:
-                filename = re.sub(r'[\"?><:\\/|*]', '', item.metadata.get('originalFilename'))
-                (mime, _) = mimetypes.guess_type(filename)
+                if item.metadata.get('mimeType') == 'application/vnd.google-apps.presentation':
+                    # _mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                    _mime = 'application/pdf'
+                    link = item.metadata.get('exportLinks')[_mime]
+                    ext = mimetypes.guess_extension(_mime)
+                    filename = '%s%s' % (item.metadata.get('title'), ext)
 
-                if mime is None and item.metadata.get('fileExtension') == '':
-                    filename = '%s.%s' % (filename, mimetypes.guess_extension(item.metadata.get('mimeType')))
-                elif '.jfif' in filename:
-                    filename = filename.replace('.jfif', '.jpg')
+                    res = requests.get(link, stream=True)
 
-                item.GetContentFile("%s/%s" % (path, filename))
+                    if res.status_code == 200:
+                        res.raw.decode_content = True
+
+                        with open(os.path.join(dpath, filename), 'w+b') as f:
+                            shutil.copyfileobj(res.raw, f)
+                            f.flush()
+
+                    else:
+                        return False
+
+                else:
+                    filename = re.sub(r'[\"?><:\\/|*]', '', item.metadata.get('originalFilename'))
+                    (mime, _) = mimetypes.guess_type(filename)
+
+                    if mime is None and item.metadata.get('fileExtension') == '':
+                        filename = '%s%s' % (filename, mimetypes.guess_extension(item.metadata.get('mimeType')))
+                    elif '.jfif' in filename:
+                        filename = filename.replace('.jfif', '.jpg')
+
+                    item.GetContentFile("%s/%s" % (dpath, filename))
             except:
                 return False
 
@@ -293,6 +314,8 @@ class YaDiskHandler(metaclass=CloudHandler):
         disk = yadisk.YaDisk()
 
         items = []
+        url = ''.join(re.findall(r'(https://[^а-я\s]+)', url, re.IGNORECASE))
+
         if ' ' in url:
             urls = url.split(' ')
 
@@ -334,7 +357,7 @@ class YaDiskHandler(metaclass=CloudHandler):
             (mime, _) = mimetypes.guess_type(filename)
 
             if mime is None:
-                filename = '%s.%s' % (filename, mimetypes.guess_extension(item.mime_type))
+                filename = '%s%s' % (filename, mimetypes.guess_extension(item.mime_type))
             elif '.jfif' in filename:
                 filename = filename.replace('.jfif', '.jpg')
 

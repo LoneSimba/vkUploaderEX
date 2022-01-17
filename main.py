@@ -107,7 +107,7 @@ def process(sender, app_data):
             add_progress_table_row(item.get('id'), item.get('title'))
 
             download_handler: CloudHandler = None
-            if 'drive.google.com' in item.get('link'):
+            if 'drive.google.com' in item.get('link') or 'docs.google.com' in item.get('link'):
                 download_handler = download_handlers.get('gdrive')()
             elif 'cloud.mail.ru' in item.get('link'):
                 download_handler = download_handlers.get('mailru')()
@@ -143,23 +143,24 @@ def process(sender, app_data):
                 update_progress(item.get('id'), 2, 'Ошибка: неподдерживаемый источник')
                 continue
 
-            # try:
-            if not download_handler.download(item.get('link'), str(item.get('id'))):
+            try:
+                if not download_handler.download(item.get('link'), str(item.get('id'))):
+                    current_source_handler.mark_as(GDriveItemStates.FAILED)
+                    update_progress(item.get('id'), 2, 'Ошибка при скачивании')
+                    continue
+            except:
                 current_source_handler.mark_as(GDriveItemStates.FAILED)
                 update_progress(item.get('id'), 2, 'Ошибка при скачивании')
                 continue
-            # except:
-            #     current_source_handler.mark_as(GDriveItemStates.FAILED)
-            #     update_progress(item.get('id'), 2, 'Ошибка при скачивании')
-            #     continue
 
             update_progress(item.get('id'), 1)
-            # try:
-            total, uploaded, failed, skipped = _vk_handler.upload(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
-            # except:
-            #     current_source_handler.mark_as(GDriveItemStates.FAILED)
-            #     update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
-            #     continue
+
+            try:
+                total, uploaded, failed, skipped = _vk_handler.upload(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
+            except:
+                current_source_handler.mark_as(GDriveItemStates.FAILED)
+                update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
+                continue
 
             res_total += total
             res_uploaded += uploaded
