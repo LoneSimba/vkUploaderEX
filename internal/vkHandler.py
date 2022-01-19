@@ -231,7 +231,6 @@ class VKHandler:
 
     def upload_from_link(self, data: dict, desc: str) -> tuple[int, int, int, int]:
         for key, val in data.items():
-            print(key)
             desc = desc.replace('$%s$' % key, str(val))
 
         total = uploaded = skipped = failed = 0

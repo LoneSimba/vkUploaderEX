@@ -17,7 +17,7 @@ from pygsheets import Cell, Spreadsheet, Worksheet
 
 from pydrive2.drive import GoogleDrive
 from pydrive2.files import GoogleDriveFile
-from pydrive2.auth import GoogleAuth, AuthenticationError
+from pydrive2.auth import GoogleAuth, AuthenticationError, RefreshError
 
 
 class CloudHandler(type):
@@ -105,6 +105,9 @@ class GDriveHandler(metaclass=CloudHandler):
             self.pygsheets_client = pygsheets.authorize(custom_credentials=creds)
         except AuthenticationError:
             print('Ошибка при авторизации в Google')
+        except RefreshError:
+            os.remove('.config/gdrive_creds.json')
+            self.__init__()
 
     def download(self, url: str, dest: str):
         items = []
@@ -200,7 +203,7 @@ class GDriveHandler(metaclass=CloudHandler):
                 empty_cell_id = c.row
                 break
 
-        return empty_cell_id
+        return empty_cell_id-1
 
     def get_rows(self, start: int, end: int):
         cells: list[Cell]

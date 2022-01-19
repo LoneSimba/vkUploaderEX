@@ -1,6 +1,4 @@
 import re
-import os.path
-import mimetypes
 
 from dearpygui.dearpygui import *
 
@@ -28,13 +26,8 @@ download_handlers: dict = {
 
 is_processing: bool = False
 
-_root_dir = os.path.realpath('./')
-
 _settings: Settings = Settings()
 _vk_handler: VKHandler = VKHandler()
-
-mimetypes.add_type('image/heif', 'heic')
-mimetypes.add_type('image/heif', 'HEIC')
 
 res_total = res_uploaded = res_failed = res_skipped = 0
 
@@ -208,7 +201,7 @@ def vk_login(sender, app_data):
 
 
 def vk_login_and_close(sender, app_data):
-    login = _settings.get_value('login')
+    login = get_value('vk_login')
     passw = get_value('vk_pass')
 
     if _vk_handler.auth_with_creds(login, passw):
@@ -412,8 +405,8 @@ with window(tag='main'):
     if _vk_handler.is_auth_required() and not _vk_handler.auth_with_token():
         with window(tag='vk_auth', label='Повторите вход', pos=(20, 20), width=300, height=150, no_resize=True,
                     on_close=delete_vk_login_prompt):
-            add_input_text(tag='vk_login', label='Логин', enabled=False, default_value=_settings.get_value('login'))
-            add_input_text(tag='vk_passw', label='Пароль', password=True)
+            add_input_text(tag='vk_login', label='Логин', default_value=_settings.get_value('login'))
+            add_input_text(tag='vk_pass', label='Пароль', password=True)
             add_button(label='Вход', callback=vk_login_and_close)
 
     with group(tag='proc_init_inputs'):
@@ -439,9 +432,16 @@ with window(tag='main'):
             add_table_column(label='Результат')
 
 
+configure_app(manual_callback_management=True)
 create_viewport(title='vkUploaderEX', width=800, height=800)
 setup_dearpygui()
 show_viewport()
 set_primary_window('main', True)
-start_dearpygui()
+# start_dearpygui()
+
+while is_dearpygui_running():
+    jobs = get_callback_queue()  # retrieves and clears queue
+    run_callbacks(jobs)
+    render_dearpygui_frame()
+
 destroy_context()
