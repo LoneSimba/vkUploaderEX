@@ -97,7 +97,7 @@ def process(sender, app_data):
         disable_proc_inputs()
 
         for item in current_source_handler.get_rows(start=get_value('grange_start'), end=get_value('grange_end')):
-            add_progress_table_row(item.get('id'), item.get('title'))
+            add_progress_table_row(item.get('no'), item.get('title'))
 
             download_handler: CloudHandler = None
             if 'drive.google.com' in item.get('link') or 'docs.google.com' in item.get('link'):
@@ -118,41 +118,46 @@ def process(sender, app_data):
                 if uploaded == 0:
                     if failed == 0 and skipped > 0:
                         current_source_handler.mark_as(GDriveItemStates.SKIPPED)
-                        update_progress(item.get('id'), 2, 'Работа пропущена: неподдериваемый формат')
+                        update_progress(item.get('no'), 2, 'Работа пропущена: неподдериваемый формат')
                     else:
                         current_source_handler.mark_as(GDriveItemStates.FAILED)
-                        update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
+                        update_progress(item.get('no'), 2, 'Ошибка при загрузке в ВК')
                 else:
                     if uploaded < total:
                         current_source_handler.mark_as(GDriveItemStates.PARTIAL)
-                        update_progress(item.get('id'), 2,
+                        update_progress(item.get('no'), 2,
                                         'Частично загружено (возможно, неподдерживаемые файлы или ошибка при загрузке)')
                     else:
                         current_source_handler.mark_as(GDriveItemStates.FINISHED)
-                        update_progress(item.get('id'), 2, 'Работа загружена')
+                        update_progress(item.get('no'), 2, 'Работа загружена')
 
                 continue
             else:
-                update_progress(item.get('id'), 2, 'Ошибка: неподдерживаемый источник')
+                update_progress(item.get('no'), 2, 'Ошибка: неподдерживаемый источник')
+
                 continue
 
             try:
                 if not download_handler.download(item.get('link'), str(item.get('id'))):
                     current_source_handler.mark_as(GDriveItemStates.FAILED)
-                    update_progress(item.get('id'), 2, 'Ошибка при скачивании')
+                    update_progress(item.get('no'), 2, 'Ошибка при скачивании')
+
                     continue
             except:
                 current_source_handler.mark_as(GDriveItemStates.FAILED)
-                update_progress(item.get('id'), 2, 'Ошибка при скачивании')
+                update_progress(item.get('no'), 2, 'Ошибка при скачивании')
+
                 continue
 
-            update_progress(item.get('id'), 1)
+            update_progress(item.get('no'), 1)
 
             try:
-                total, uploaded, failed, skipped = _vk_handler.upload(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
+                total, uploaded, failed, skipped = _vk_handler\
+                    .upload(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
             except:
                 current_source_handler.mark_as(GDriveItemStates.FAILED)
-                update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
+                update_progress(item.get('no'), 2, 'Ошибка при загрузке в ВК')
+
                 continue
 
             res_total += total
@@ -163,18 +168,17 @@ def process(sender, app_data):
             if uploaded == 0:
                 if failed == 0 and skipped > 0:
                     current_source_handler.mark_as(GDriveItemStates.SKIPPED)
-                    update_progress(item.get('id'), 2, 'Работа пропущена: неподдериваемый формат')
+                    update_progress(item.get('no'), 2, 'Работа пропущена: неподдериваемый формат')
                 else:
                     current_source_handler.mark_as(GDriveItemStates.FAILED)
-                    update_progress(item.get('id'), 2, 'Ошибка при загрузке в ВК')
+                    update_progress(item.get('no'), 2, 'Ошибка при загрузке в ВК')
             else:
                 if uploaded < total:
                     current_source_handler.mark_as(GDriveItemStates.PARTIAL)
-                    update_progress(item.get('id'), 2,
-                                    'Частично загружено (возможно, неподдерживаемые файлы или ошибка при загрузке)')
+                    update_progress(item.get('no'), 2, 'Частично загружено (возможно, неподдерживаемые файлы или ошибка при загрузке)')
                 else:
                     current_source_handler.mark_as(GDriveItemStates.FINISHED)
-                    update_progress(item.get('id'), 2, 'Работа загружена')
+                    update_progress(item.get('no'), 2, 'Работа загружена')
 
         create_upload_results()
         is_processing = False
@@ -205,6 +209,7 @@ def vk_login_and_close(sender, app_data):
     passw = get_value('vk_pass')
 
     if _vk_handler.auth_with_creds(login, passw):
+        update_vk_album_combos()
         delete_vk_login_prompt()
 
 

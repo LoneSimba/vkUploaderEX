@@ -111,18 +111,36 @@ class GDriveHandler(metaclass=CloudHandler):
 
     def download(self, url: str, dest: str):
         items = []
-        if "file/d/" in url or 'presentation/d/' in url:
-            fid = re.findall(r'd/([\w\W]+)/', url)[0]
-            print(fid)
-            file_obj = self.client.CreateFile({'id': fid})
-            file_obj.FetchMetadata(fetch_all=True)
-            items = [file_obj]
-        elif "folders/" in url:
-            fid = re.findall(r'folders/([\w\W][^?]+)', url)[0]
-            items = self.client.ListFile({'q': "'%s' in parents" % fid}).GetList()
-        elif 'folderview' in url:
-            fid = re.findall(r'id=([\w\W]+)', url)[0]
-            items = self.client.ListFile({'q': "'%s' in parents" % fid}).GetList()
+        if ' ' in url:
+            links = url.split(' ')
+
+            for _link in links:
+
+                if "file/d/" in _link or 'presentation/d/' in _link:
+                    fid = re.findall(r'd/([\w\W]+)/', _link)[0]
+                    print(fid)
+                    file_obj = self.client.CreateFile({'id': fid})
+                    file_obj.FetchMetadata(fetch_all=True)
+                    items.append(file_obj)
+                elif "folders/" in _link:
+                    fid = re.findall(r'folders/([\w\W][^?]+)', _link)[0]
+                    items.extend(self.client.ListFile({'q': "'%s' in parents" % fid}).GetList())
+                elif 'folderview' in _link:
+                    fid = re.findall(r'id=([\w\W]+)', _link)[0]
+                    items.extend(self.client.ListFile({'q': "'%s' in parents" % fid}).GetList())
+        else:
+            if "file/d/" in url or 'presentation/d/' in url:
+                fid = re.findall(r'd/([\w\W]+)/', url)[0]
+                print(fid)
+                file_obj = self.client.CreateFile({'id': fid})
+                file_obj.FetchMetadata(fetch_all=True)
+                items = [file_obj]
+            elif "folders/" in url:
+                fid = re.findall(r'folders/([\w\W][^?]+)', url)[0]
+                items = self.client.ListFile({'q': "'%s' in parents" % fid}).GetList()
+            elif 'folderview' in url:
+                fid = re.findall(r'id=([\w\W]+)', url)[0]
+                items = self.client.ListFile({'q': "'%s' in parents" % fid}).GetList()
 
         dpath = '%s/%s' % ('.temp', dest)
         makedirs(dpath, exist_ok=True)
@@ -214,13 +232,14 @@ class GDriveHandler(metaclass=CloudHandler):
 
             self.current_row = cells
             yield {
+                'no': int(cells[GDriveCols.ID].row),
                 'id': int(cells[GDriveCols.ID].value_unformatted),
                 'school': cells[GDriveCols.SCHOOL].value_unformatted,
                 'group': cells[GDriveCols.GROUP].value_unformatted,
                 'student': cells[GDriveCols.STUDENT].value_unformatted,
                 'age': cells[GDriveCols.AGE].value,
                 'tutor': cells[GDriveCols.TUTOR].value_unformatted,
-                'title': cells[GDriveCols.TITLE].value_unformatted,
+                'title': str(cells[GDriveCols.TITLE].value_unformatted),
                 'materials': cells[GDriveCols.MATERIALS].value_unformatted,
                 'link': cells[GDriveCols.LINK].value_unformatted,
                 'comm': cells[GDriveCols.COMM].value_unformatted
@@ -330,7 +349,7 @@ class YaDiskHandler(metaclass=CloudHandler):
                     return False
 
                 if data.type == "dir":
-                    items.append(data.embedded.items)
+                    items.extend(data.embedded.items)
                 else:
                     items.append(data)
             print(items)
