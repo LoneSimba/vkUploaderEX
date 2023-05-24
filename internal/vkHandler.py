@@ -55,6 +55,7 @@ class VKHandler:
     def auth_with_password(self, password: str):
         pass
 
+
     def auth_with_creds(self, login: str, password: str):
         try:
             session = vk_api.VkApi(login=login, password=password, config_filename=self._vkconf_path)
@@ -63,15 +64,15 @@ class VKHandler:
             with open(self._token_path, "w+", encoding='utf-8') as f:
                 auth = {
                     'login': login,
-                    'token': session.token.get('access_token')
+                    'token': session.token
                 }
 
                 f.write(json.dumps(auth))
 
             self._api = session.get_api()
             self._uploader = VkUpload(self._api)
-        except:
-            print('Ошибка входа')
+        except AuthError as err:
+            print(err)
 
     def is_auth_required(self) -> bool:
         return self._api is None

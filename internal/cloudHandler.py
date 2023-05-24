@@ -45,15 +45,16 @@ class CloudHandler(type):
 
 class GDriveCols(IntEnum):
     ID: int = 0
-    SCHOOL: int = 3
-    GROUP: int = 4
-    STUDENT: int = 6
-    AGE: int = 7
-    TUTOR: int = 10
-    TITLE: int = 13
-    MATERIALS: int = 14
-    LINK: int = 16
-    COMM: int = 17
+    SCHOOL: int = 4
+    GROUP: int = 5
+    STUDENT: int = 9
+    AGE: int = 10
+    TUTOR: int = 6
+    TITLE: int = 16
+    MATERIALS: int = 17
+    LINK: int = 18
+    COMM: int = 19
+    RES: int = 25
 
 
 class GDriveColors(Enum):
@@ -226,7 +227,7 @@ class GDriveHandler(metaclass=CloudHandler):
     def get_rows(self, start: int, end: int):
         cells: list[Cell]
         for cells in self.target_worksheet.get_values(start=(start + self.START_ROW, GDriveCols.ID+1),
-                                                      end=(end + self.START_ROW, GDriveCols.COMM+1), returnas='cell'):
+                                                      end=(end + self.START_ROW, GDriveCols.RES+1), returnas='cell'):
             if self.is_row_excluded(cells):
                 continue
 
@@ -242,13 +243,16 @@ class GDriveHandler(metaclass=CloudHandler):
                 'title': str(cells[GDriveCols.TITLE].value_unformatted),
                 'materials': cells[GDriveCols.MATERIALS].value_unformatted,
                 'link': cells[GDriveCols.LINK].value_unformatted,
-                'comm': cells[GDriveCols.COMM].value_unformatted
+                'comm': cells[GDriveCols.COMM].value_unformatted,
+                'res': cells[GDriveCols.RES].value_unformatted
             }
 
     def is_row_excluded(self, row: list[Cell]) -> bool:
-        return self.is_cells_colored(row) or self.is_cell_colored(row[GDriveCols.TITLE]) or\
-               self.is_repeated(row[GDriveCols.COMM])
+        return self.is_excluded(row[GDriveCols.RES])
 
+    def is_excluded(self, cell: Cell) -> bool:
+        return any(res in cell.value_unformatted for res in [ 'аннулирован'])
+# 'Гран-при', 'Специальный', 'Лауреат I степени'
     def is_repeated(self, cell: Cell) -> bool:
         return 'повтор' in cell.value_unformatted.lower() or 'копия' in cell.value_unformatted.lower()
 

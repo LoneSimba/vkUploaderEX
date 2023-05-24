@@ -108,7 +108,7 @@ def process(sender, app_data):
                 download_handler = download_handlers.get('yadisk')()
             elif 'youtube.com' in item.get('link') or 'youtu.be' in item.get('link'):
                 total, uploaded, failed, skipped = _vk_handler\
-                    .upload_from_link(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$')
+                    .upload_from_link(item, '"$title$". $materials$\nРезультат участия: $res$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$')
 
                 res_total += total
                 res_uploaded += uploaded
@@ -153,7 +153,7 @@ def process(sender, app_data):
 
             try:
                 total, uploaded, failed, skipped = _vk_handler\
-                    .upload(item, '"$title$". $materials$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
+                    .upload(item, '"$title$". $materials$\nРезультат участия: $res$\nАвтор(ы) - $student$, $age$ лет.\nПедагог(и) - $tutor$.\n$school$, $group$\n\nfile: $file$')
             except:
                 current_source_handler.mark_as(GDriveItemStates.FAILED)
                 update_progress(item.get('no'), 2, 'Ошибка при загрузке в ВК')
@@ -200,6 +200,7 @@ def save_settings(sender, app_data):
 def vk_login(sender, app_data):
     login = get_value('vk_login')
     passw = get_value('vk_pass')
+    code = get_value('vk_2fa')
 
     _vk_handler.auth_with_creds(login, passw)
 
@@ -207,6 +208,7 @@ def vk_login(sender, app_data):
 def vk_login_and_close(sender, app_data):
     login = get_value('vk_login')
     passw = get_value('vk_pass')
+    code = get_value('vk_2fa')
 
     if _vk_handler.auth_with_creds(login, passw):
         update_vk_album_combos()
@@ -313,6 +315,7 @@ def create_settings_window():
         with group(label='Вход в ВКонтакте'):
             add_input_text(tag='vk_login', label='Логин', default_value=settings.get('login'))
             add_input_text(tag='vk_pass', label='Пароль', password=True)
+            add_input_text(tag='vk_2fa', label='Код двухфакторной авторизации')
             add_button(label='Вход', callback=vk_login)
 
         with group(label='Настройки группы'):
@@ -412,6 +415,7 @@ with window(tag='main'):
                     on_close=delete_vk_login_prompt):
             add_input_text(tag='vk_login', label='Логин', default_value=_settings.get_value('login'))
             add_input_text(tag='vk_pass', label='Пароль', password=True)
+            add_input_text(tag='vk_2fa', label='Код двухфакторной авторизации')
             add_button(label='Вход', callback=vk_login_and_close)
 
     with group(tag='proc_init_inputs'):
